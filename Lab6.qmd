@@ -1,0 +1,131 @@
+---
+title: "Lab6"
+format: html
+author: YAML
+embed-resources: true
+---
+
+## Lab 6
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+mt_samples <- read_csv("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/00_mtsamples/mtsamples.csv")
+mt_samples <- mt_samples |>
+  select(description, medical_specialty, transcription)
+
+head(mt_samples)
+```
+
+Question 1
+
+```{r}
+mt_samples %>%
+  count(medical_specialty, sort = TRUE)
+```
+
+There are 40 medical specialties. Yes they are slightly related due to surgery being one category but surgeries can be involved within multiple categories. They do slightly overlap and within mt_samples there are multiple of the same medical specialties with different descriptions.
+
+Question 2
+
+```{r}
+library(tidytext)
+mt_samples |>
+  unnest_tokens(token, transcription) |>
+  count(token) |>
+  top_n(20, n)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+mt_samples |>
+  unnest_tokens(token, transcription) |>
+  count(token) |>
+  top_n(20, n) |>
+  ggplot(aes(n, token)) +
+  geom_col()
+```
+
+The top 10 words are all filler words within the english language. If we were to eliminate these words I bet we would get more medical terminology
+
+Question 3
+
+```{r}
+mt_samples |>
+  unnest_tokens(token, transcription) |>
+  anti_join(stop_words, by = c("token" = "word")) |>
+  count(token, sort = TRUE) |>
+  top_n(20, n) |>
+  ggplot(aes(n, token)) +
+  geom_col()
+```
+
+Now that we have removed stop words it gives us more medical terminology. There are still numbers, however the words are more relevant to medical terminology such as 'patient,' 'procedure', etc.
+
+Question 4
+
+```{r}
+library(tidyr)
+library(ggplot2)
+mt_samples |>
+  unnest_ngrams(ngram, transcription, n = 2) |>
+  count(ngram, sort = TRUE) |>
+  top_n(20, n) |>
+  ggplot(aes(n, ngram)) +
+  geom_col()
+```
+
+```{r}
+library(tidyr)
+library(ggplot2)
+mt_samples |>
+  unnest_ngrams(ngram, transcription, n = 3) |>
+  count(ngram, sort = TRUE) |>
+  top_n(20, n) |>
+  ggplot(aes(n, ngram)) +
+  geom_col()
+```
+
+If we were to put these words into trigrams compared to bigrams it basically states the same word repeateadly but in these 3 different columns.
+
+Question 5
+
+```{r}
+library(tidyr)
+library(tidytext)
+mt_samples |>
+  unnest_ngrams(ngram, transcription, n = 3) |>
+  separate(ngram, into = c("word1", "word2", "word3"), sep = " ") |>
+  select(word1, word2, word3) |>
+  filter(word2 == "surgery") |>
+  count(word1, sort = TRUE)
+```
+
+```{r}
+library(tidyr)
+library(tidytext)
+mt_samples |>
+  unnest_ngrams(ngram, transcription, n = 3) |>
+  separate(ngram, into = c("word1", "word2", "word3"), sep = " ") |>
+  select(word1, word2, word3) |>
+  filter(word2 == "surgery") |>
+  count(word3, sort = TRUE)
+```
+
+```{r}
+library(tidytext)
+library(dplyr)
+top_words <- mt_samples |>
+  unnest_tokens(token, transcription) |>
+  anti_join(stop_words, by = c("token" = "word")) |>
+  group_by(medical_specialty) |>
+  count(token, sort = TRUE) |>
+  top_n(5, n)
+```
