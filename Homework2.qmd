@@ -1,0 +1,617 @@
+---
+title: "Homework2"
+format: html
+author: makena
+embed-resources: true
+---
+
+```{r}
+library(nycflights13)
+airlines <- airlines
+airports <- airports
+flights <- flights
+planes <- planes
+weather <- weather
+```
+
+**Question 1**
+
+```{r}
+library(tidytext)
+library(dplyr)
+flights |>
+  unnest_tokens(token, dest) |>
+  count(token) |>
+  top_n(10, n)
+```
+
+We can see the top 10 flight destinations based on airport code are Atlanta, Boston, Charlotte, Virgina, Fort Lauderdale, Los Angeles, Orlando, Miami, Chicago, and San Francisco. N represents how many flights there were to the specific destination within the "nycflights13" dataset.
+
+**Question 2**
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(tidyverse)
+flights_time <- flights |>
+  drop_na(dep_time, arr_time) |>
+  mutate(
+    dep_time = case_when(
+      dep_time < 600  ~ "early morning",
+      dep_time < 1200 ~ "morning",
+      dep_time < 1800 ~ "afternoon",
+      dep_time <= 2400 ~ "evening",
+    ),
+    arr_time = case_when(
+      arr_time < 600  ~ "early morning",
+      arr_time < 1200 ~ "morning",
+      arr_time < 1800 ~ "afternoon",
+      arr_time <= 2400 ~ "evening",
+    )
+  )
+```
+
+```{r}
+library(ggplot2)
+flights_time |>
+  ggplot(aes(x = dep_time)) +
+  geom_bar() +
+  labs(
+    x = "Departure time",
+    y = "Number of flights",
+    title = "Flights by Departure Time"
+  )
+```
+
+```{r}
+library(ggplot2)
+flights_time |>
+  ggplot(aes(x = arr_time)) +
+  geom_bar() +
+  labs(
+    x = "Arrival time",
+    y = "Number of flights",
+    title = "Flights by Arrival Time"
+  )
+```
+
+```{r}
+library(tidytext)
+library(dplyr)
+flights_time |>
+  summarise(
+    red_eye = mean(
+      (dep_time == "afternoon" | dep_time == "evening") &
+        (arr_time == "early morning" | arr_time == "morning"),
+      na.rm = TRUE
+    ) * 100
+  )
+```
+
+3.2% of these total flights followed specific parameters to then be classified as a red eye flight
+
+**Question 3**
+
+```{r}
+library(tidytext)
+library(dplyr)
+multiple_planes <- flights |>
+  drop_na(tailnum) |>
+  group_by(tailnum) |>
+  filter(n_distinct(carrier) >1) |>
+  distinct(tailnum, carrier) |>
+  arrange(tailnum)
+  
+multiple_planes
+```
+
+In the "tailnum" columns it repeats the tail number multiple times in different rows if it corresponds to a different carrier. For Example we can see the tail number "N146PQ" had 2 different carriers 9E and EV. In the dataset there was a total of 34 times the same tail number flew for multiple airlines. The carrier that they consisted of were 9E, EV, FL, and DL.
+
+**Question 4**
+
+```{r}
+library(tidytext)
+library(dplyr)
+weather |>
+  left_join(airports, by = c("origin" = "faa"))
+flight_weather <- flights |>
+  left_join(
+    weather,
+    by = c("year", "month", "day", "hour", "origin")
+  ) |>
+  select(origin, flight, dep_delay, wind_speed) |>
+  drop_na(dep_delay, wind_speed) |>
+  arrange(desc(dep_delay))
+
+flight_weather
+```
+
+I wanted to look at if wind speed had any correlation to the amount of delay - in minutes. From this table, ranked in descending order that wind speed didn't neccesarily have a true effect on departure delay in minutes. Delays can also be mechanical.
+
+**Question 5**
+
+```{r}
+library(tidytext)
+library(dplyr)
+weather <- weather |>
+  unite(
+    weather_id,
+    year, month, day, hour, origin,
+    remove = FALSE
+  )
+```
+
+```{r}
+weather |>
+  summarise(
+    number_duplicated = sum(duplicated(weather_id))
+  )
+weather |>
+  filter(
+    duplicated(weather_id) |
+      duplicated(weather_id)
+  ) |>
+  select(weather_id, time_hour)
+```
+
+There could be duplicated values due to daylight savings time.
+
+```{r}
+library(tidytext)
+library(dplyr)
+flight_weather <- flights |>
+  left_join(
+    weather,
+    by = c("time_hour", "origin")
+  ) |>
+  drop_na()
+```
+
+**Question 6**
+
+```{r}
+dim(flight_weather)
+```
+
+There is 72,734 rows and 33 columns
+
+```{r}
+head(flight_weather)
+```
+
+```{r}
+tail(flight_weather)
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, dewp) |>
+  ggplot(aes(x = dewp, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Dew point",
+    y = "Departure delay",
+    title = "Departure Delay by Dew Point"
+  )
+```
+
+```         
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, humid) |>
+  ggplot(aes(x = humid, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Humidity",
+    y = "Departure delay",
+    title = "Departure Delay by Humidity"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, wind_dir) |>
+  ggplot(aes(x = wind_dir, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Wind Direction",
+    y = "Departure delay",
+    title = "Departure Delay by Wind Direction"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, humid) |>
+  ggplot(aes(x = humid, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Humidity",
+    y = "Departure delay",
+    title = "Departure Delay by Humidity"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, wind_dir) |>
+  ggplot(aes(x = wind_dir, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Wind Direction",
+    y = "Departure delay",
+    title = "Departure Delay by Wind Direction"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, wind_speed) |>
+  ggplot(aes(x = wind_speed, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Wind Speed",
+    y = "Departure delay",
+    title = "Departure Delay by Wind Speed"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, wind_gust) |>
+  ggplot(aes(x = wind_gust, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Wind Gust",
+    y = "Departure delay",
+    title = "Departure Delay by Wind Gust"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, precip) |>
+  ggplot(aes(x = precip, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Precipitation",
+    y = "Departure delay",
+    title = "Departure Delay by Precipitation"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, pressure) |>
+  ggplot(aes(x = pressure, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Pressure",
+    y = "Departure delay",
+    title = "Departure Delay by Pressure"
+  )
+```
+
+```{r}
+library(ggplot2)
+flight_weather |>
+  drop_na(dep_delay, visib) |>
+  ggplot(aes(x = visib, y = dep_delay)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    x = "Visibility",
+    y = "Departure delay",
+    title = "Departure Delay by Visibility"
+  )
+```
+
+**Group 7**
+
+```{r}
+daily_delays <- flight_weather |>
+  group_by(time_hour) |>
+  summarise(
+    average_delay = mean(dep_delay, na.rm = TRUE)
+  ) |>
+  arrange(desc(average_delay))
+
+daily_delays
+```
+
+the Variable time_hour reflects the date as well as the hour. In the following column it reflects the average delay for that day. We can see that the date with the worst average delay of 269 minutes was February 9 2013.
+
+```{r}
+daily_origin_delays <- flight_weather |>
+  group_by(year.x, month.x, day.x, origin) |>
+  summarise(
+    average_delay = mean(dep_delay, na.rm = TRUE)
+  ) |>
+  arrange(desc(average_delay))
+daily_origin_delays
+```
+
+The airport that had the worst single day was LGA and it was June 24 2013.
+
+```{r}
+daily_hour_origin_delays <- flight_weather |>
+  group_by(month.x, day.x, hour.x, origin) |>
+  summarise(
+    average_delay = mean(dep_delay, na.rm = TRUE)
+  ) |>
+  arrange(desc(average_delay))
+daily_hour_origin_delays
+```
+
+The worst delay was at EWR airport at 10 am on February 9.
+
+**Question 8**
+
+```{r}
+average_arrival_delay <- flights |>
+  group_by(dest) |>
+  summarise(
+    average_delay = mean(arr_delay, na.rm = TRUE)
+  ) |>
+  drop_na(average_delay)
+
+airports <- nycflights13::airports |>
+  left_join(
+    average_arrival_delay,
+    by = c("faa" = "dest")
+  ) |>
+  drop_na(average_delay)
+```
+
+```{r}
+library(ggplot2)
+#| fig-width: 20
+#| fig-height: 20
+airports |>
+  ggplot(aes(x = lon, y = lat)) +
+  borders("state", color = "gray") +
+  geom_point(
+    aes(color = average_delay),
+    size = 2
+  ) +
+  scale_color_gradient(
+    low = "blue",
+    high = "red"
+  ) +
+  labs(
+    title = "Average Arrival Delay by Airport",
+    x = "Longitude",
+    y = "Latitude",
+  )
+```
+
+**Question 9**
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, dewp) |>
+  summarise(correlation = cor(dep_delay, dewp))
+
+flight_weather |>
+  drop_na(dep_delay, humid) |>
+  summarise(correlation = cor(dep_delay, humid))
+
+flight_weather |>
+  drop_na(dep_delay, wind_dir) |>
+  summarise(correlation = cor(dep_delay, wind_dir))
+
+flight_weather |>
+  drop_na(dep_delay, wind_gust) |>
+  summarise(correlation = cor(dep_delay, wind_gust))
+
+flight_weather |>
+  drop_na(dep_delay, precip) |>
+  summarise(correlation = cor(dep_delay, precip))
+
+flight_weather |>
+  drop_na(dep_delay, pressure) |>
+  summarise(correlation = cor(dep_delay, pressure))
+
+flight_weather |>
+  drop_na(dep_delay, visib) |>
+  summarise(correlation = cor(dep_delay, visib))
+```
+
+the weather phenomena that has the strongest correlation to departure delays is Humidity.
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, dewp) |>
+  ggplot(aes(x = dewp, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by dewpoint",
+    x = "Dew Point",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, humid) |>
+  ggplot(aes(x = humid, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by humidity",
+    x = "Humidity",
+    y = "Departure delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, wind_dir) |>
+  ggplot(aes(x = wind_dir, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by wind direction",
+    x = "wind direction",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, wind_speed) |>
+  ggplot(aes(x = wind_speed, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by wind speed",
+    x = "wind speed",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, wind_gust) |>
+  ggplot(aes(x = wind_gust, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by wind gust",
+    x = "wind gust",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, precip) |>
+  ggplot(aes(x = precip, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by precipitation",
+    x = "precipitation",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, pressure) |>
+  ggplot(aes(x = pressure, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by pressure",
+    x = "pressure",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+flight_weather |>
+  drop_na(dep_delay, visib) |>
+  ggplot(aes(x = visib, y = dep_delay)) +
+  geom_point(
+    color = "pink",
+    alpha = 0.6,
+    size = 1
+  ) +
+  geom_smooth(
+    color = "darkorange",
+    se = FALSE
+  ) +
+  coord_cartesian(ylim = c(-50, 450)) +
+  labs(
+    title = "Departure Delay by visibility",
+    x = "visibility",
+    y = "Departure delay"
+  ) +
+  theme_minimal()
+```
